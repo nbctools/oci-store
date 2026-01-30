@@ -1,0 +1,43 @@
+services:
+  localstack:
+    container_name: localstack_s3
+    image: localstack/localstack
+    ports:
+      - "127.0.0.1:4566:4566" # LocalStack Gateway
+      - "127.0.0.1:4510-4559:4510-4559" # external services port range
+    environment:
+      # Only enable the S3 service to reduce resource usage
+      - SERVICES=s3
+      # Set a default region for LocalStack
+      # - DEFAULT_REGION=us-east-1
+      # # Dummy AWS credentials - replace if you have specific testing needs
+      # - AWS_ACCESS_KEY_ID=test
+      # - AWS_SECRET_ACCESS_KEY=test
+      # # AWS region to be used by the AWS SDK/CLI clients
+      # - AWS_DEFAULT_REGION=us-east-1
+      # # Optional: set debug mode for more verbose logging
+      - DEBUG=1
+      # # Optional: where LocalStack stores temporary files (inside the container)
+      # - TMPDIR=/tmp/localstack
+      # # Set up hostname to be accessible from within the container network
+      # - LOCALSTACK_HOST=localhost
+      # Automatically create S3 buckets on startup if specified, e.g., 'my-test-bucket,another-bucket'
+      # - S3_BUCKET_NAMES=oci-images-bucket
+    volumes:
+      # Persist LocalStack data (S3 buckets/objects) to a named volume on your host
+      - localstack-data:/var/lib/localstack
+      # Mount a local tmp directory if using TMPDIR env var
+      # - /tmp/localstack:/tmp/localstack
+      # You might also want to mount your AWS config for specific testing scenarios
+      # - ~/.aws:/root/.aws:ro
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4566/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s # Give LocalStack some time to start up initially
+
+volumes:
+  # Define the named volume for LocalStack data persistence
+  localstack-data:
