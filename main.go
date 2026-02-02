@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	storage       string
 	region        string
 	endpoint      string
 	accessKey     string
@@ -20,9 +21,9 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "oci-s3",
-	Short: "Push and pull Docker images to/from S3",
-	Long:  `A CLI tool to store Docker/OCI images in S3 using distribution registry's S3 storage driver`,
+	Use:   "oci-store",
+	Short: "Push and pull Docker images directly to/from the storage (S3, GCS, Azure)",
+	Long:  `A CLI tool to store Docker/OCI images in cloud storage using distribution registry's storage drivers`,
 }
 
 var pushCmd = &cobra.Command{
@@ -60,12 +61,14 @@ func valRegion() error {
 }
 
 func init() {
+	rootCmd.PersistentFlags().StringVarP(&storage, "storage", "s", "", "Storage type (s3, gcs, azure)")
 	rootCmd.PersistentFlags().StringVarP(&region, "region", "r", "", "AWS region (defaults to AWS_REGION env var)")
 	rootCmd.PersistentFlags().StringVarP(&endpoint, "endpoint", "e", "", "S3-compatible endpoint (optional)")
 	rootCmd.PersistentFlags().StringVar(&accessKey, "access-key", "", "AWS access key (defaults to AWS_ACCESS_KEY_ID env var)")
 	rootCmd.PersistentFlags().StringVar(&secretKey, "secret-key", "", "AWS secret key (defaults to AWS_SECRET_ACCESS_KEY env var)")
 	rootCmd.PersistentFlags().StringVar(&rootDirectory, "root-dir", "", "Root directory in S3 bucket (optional)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose")
+	rootCmd.MarkPersistentFlagRequired("storage")
 
 	pushCmd.Flags().StringP("image", "i", "", "Local Docker image to push (defaults to image-path:tag)")
 

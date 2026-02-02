@@ -1,4 +1,4 @@
-module github.com/yourusername/oci-s3
+module github.com/nbctools/oci-store
 
 go 1.25.0
 

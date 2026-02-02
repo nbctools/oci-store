@@ -1,4 +1,4 @@
-# OCI-S3: Docker Image Storage on S3
+# OCI-STORE: Docker Image Storage on S3
 
 A CLI tool to push and pull Docker/OCI images to/from Amazon S3 with content-addressable storage optimization.
 
@@ -14,15 +14,15 @@ A CLI tool to push and pull Docker/OCI images to/from Amazon S3 with content-add
 ## Installation
 
 ```bash
-go install github.com/yourusername/oci-s3@latest
+go install github.com/nbctools/oci-store@latest
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/yourusername/oci-s3
-cd oci-s3
-go build -o oci-s3
+git clone https://github.com/nbctools/oci-store
+cd oci-store
+go build -o oci-store
 ```
 
 ## Prerequisites
@@ -44,26 +44,26 @@ The tool uses the same S3 storage driver as the Docker Registry, which means it 
 
 ```bash
 # Push a local Docker image to S3
-oci-s3 push my-bucket/myapp:v1.0
+oci-store push my-bucket/myapp:v1.0
 
 # Push with explicit local image name
-oci-s3 push my-bucket/myapp:v1.0 --image localhost/myapp:latest
+oci-store push my-bucket/myapp:v1.0 --image localhost/myapp:latest
 
 # Push to a specific region
-oci-s3 push my-bucket/myapp:v1.0 --region us-west-2
+oci-store push my-bucket/myapp:v1.0 --region us-west-2
 
 # Push to S3-compatible storage (e.g., MinIO)
-oci-s3 push my-bucket/myapp:v1.0 --endpoint http://localhost:9000
+oci-store push my-bucket/myapp:v1.0 --endpoint http://localhost:9000
 
 # Use a root directory in the bucket
-oci-s3 push my-bucket/myapp:v1.0 --root-dir /registry
+oci-store push my-bucket/myapp:v1.0 --root-dir /registry
 ```
 
 ### Pull an image from S3
 
 ```bash
 # Pull an image from S3 and load into Docker
-oci-s3 pull my-bucket/myapp:v1.0
+oci-store pull my-bucket/myapp:v1.0
 ```
 
 ## S3 Storage Layout
@@ -169,10 +169,13 @@ Your AWS credentials need the following S3 permissions:
 docker build -t myapp:v1.0 .
 
 # Push to S3
-oci-s3 push my-bucket/myapp:v1.0
+oci-store -s s3 push my-bucket/myapp:v1.0
+
+# Push to gcs 
+oci-store -s gcs push my-bucket/myapp:v1.0
 
 # On another machine with same AWS credentials
-oci-s3 pull my-bucket/myapp:v1.0
+oci-store pull my-bucket/myapp:v1.0
 
 # Run the image
 docker run myapp:v1.0
@@ -194,16 +197,16 @@ export AWS_SECRET_ACCESS_KEY=your-secret-key
 
 ```bash
 # S3-compatible storage (MinIO, etc.)
-oci-s3 push my-bucket/myapp:v1.0 \
+oci-store push s3:my-bucket/myapp:v1.0 \
   --endpoint http://localhost:9000 \
   --region us-east-1
 
 # Use a subdirectory in the bucket
-oci-s3 push my-bucket/myapp:v1.0 \
+oci-store push s3:my-bucket/myapp:v1.0 \
   --root-dir /docker/registry
 
 # Combine options
-oci-s3 pull my-bucket/myapp:v1.0 \
+oci-store pull my-bucket/myapp:v1.0 \
   --region eu-west-1 \
   --root-dir /production
 ```
@@ -214,7 +217,7 @@ When running on EC2, ECS, or EKS, you can omit credentials to use IAM roles:
 
 ```bash
 # No credentials needed - uses instance IAM role
-oci-s3 push my-bucket/myapp:v1.0 --region us-east-1
+oci-store push my-bucket/myapp:v1.0 --region us-east-1
 ```
 
 ## Troubleshooting
