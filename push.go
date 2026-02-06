@@ -14,49 +14,27 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 )
 
-type S3Ref struct {
-	Bucket string
-	Path   string
-	Tag    string
-}
-
-func parseS3Ref(ref string) (*S3Ref, error) {
-	parts := strings.SplitN(ref, "/", 2)
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid S3 reference format, expected: bucket/path:tag")
-	}
-
-	bucket := parts[0]
-	pathTag := parts[1]
-
-	tagParts := strings.SplitN(pathTag, ":", 2)
-	if len(tagParts) != 2 {
-		return nil, fmt.Errorf("missing tag in reference")
-	}
-
-	return &S3Ref{
-		Bucket: bucket,
-		Path:   tagParts[0],
-		Tag:    tagParts[1],
-	}, nil
-}
-
 func getEnv(key string) string {
 	return strings.TrimSpace(os.Getenv(key))
 }
 
-func pushImage(ctx context.Context, s3Ref string, localImage string) (err error) {
-	ref, err := parseS3Ref(s3Ref)
+func pushImage(ctx context.Context, storageType string, storageRef string, localImage string) (err error) {
+	backend, err := NewBackend(storageType)
+	if err != nil {
+		return err
+	}
+
+	ref, err := backend.ParseRef(storageRef)
 	if err != nil {
 		return err
 	}
 
 	if localImage == "" {
-		localImage = s3Ref
+		localImage = storageRef
 	}
 
-	slog.Info("Pushing image", "image", localImage, "dest", fmt.Sprintf("s3://%s/%s:%s", ref.Bucket, ref.Path, ref.Tag), "bucket", ref.Bucket)
-	regAddr, err := startRegistry(ctx, ref.Bucket)
+	slog.Info("Pushing image", "image", localImage, "dest", fmt.Sprintf("%s://%s/%s:%s", ref.Type, ref.Bucket, ref.Path, ref.Tag), "bucket", ref.Bucket)
+	regAddr, err := startRegistry(ctx, backend, ref.Bucket)
 	if err != nil {
 		return err
 	}

@@ -10,14 +10,18 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/daemon"
 )
 
-func pullImage(ctx context.Context, s3Ref string) error {
-	ref, err := parseS3Ref(s3Ref)
+func pullImage(ctx context.Context, storageType string, storageRef string) error {
+	backend, err := NewBackend(storageType)
+	if err != nil {
+		return err
+	}
+	ref, err := backend.ParseRef(storageRef)
 	if err != nil {
 		return err
 	}
 	slog.Info("Pulling image", "bucket", ref.Bucket, "image", ref.Path+":"+ref.Tag)
 
-	regAddr, err := startRegistry(ctx, ref.Bucket)
+	regAddr, err := startRegistry(ctx, backend, ref.Bucket)
 	if err != nil {
 		return err
 	}
@@ -26,11 +30,11 @@ func pullImage(ctx context.Context, s3Ref string) error {
 	if err != nil {
 		return err
 	}
-	tag, err := name.NewTag(s3Ref)
+	tag, err := name.NewTag(storageRef)
 	if err != nil {
 		return err
 	}
 	_, err = daemon.Write(tag, img)
-	slog.Info("Image pulled", "name", s3Ref)
+	slog.Info("Image pulled", "name", storageRef)
 	return err
 }

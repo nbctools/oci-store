@@ -1,16 +1,23 @@
 services:
   localstack:
-    container_name: localstack_s3
+    container_name: localstack_multi
     image: localstack/localstack
     ports:
       - "127.0.0.1:4566:4566" # LocalStack Gateway
       - "127.0.0.1:4510-4559:4510-4559" # external services port range
     environment:
-      # Only enable the S3 service to reduce resource usage
-      - SERVICES=s3
+      # Enable S3, GCS, and Azure Blob Storage services
+      - SERVICES=s3,s3,gcs,azure
+      # GCS and Azure emulation configuration
+      - GCS_PROVIDER=localstack
+      - AZURE_PROVIDER=localstack
       # - DEBUG=1
+      # Configure persistence for all services
+      - PERSISTENCE=1
+      # Disable edge caching to see immediate changes
+      - EDGE_PORT=4566
     volumes:
-      # Persist LocalStack data (S3 buckets/objects) to a named volume on your host
+      # Persist LocalStack data (S3/GCS/Azure buckets/objects) to a named volume on your host
       - localstack-data:/var/lib/localstack
       - "/var/run/docker.sock:/var/run/docker.sock"
     healthcheck:
@@ -20,6 +27,26 @@ services:
       retries: 5
       start_period: 10s # Give LocalStack some time to start up initially
 
+  # Additional service for azurite (Azure emulator) as alternative to LocalStack Azure
+  azurite:
+    container_name: azurite_blob
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports:
+      - "10000:10000" # Blob service
+      - "10001:10001" # Queue service (not used but included for completeness)
+      - "10002:10002" # Table service (not used but included for completeness)
+    volumes:
+      - azurite-data:/data
+    environment:
+      - AZURITE_ACCOUNTS=devstoreaccount1=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:10000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
-  # Define the named volume for LocalStack data persistence
+  # Define the named volumes for data persistence
   localstack-data:
+  azurite-data:
