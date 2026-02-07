@@ -24,10 +24,14 @@ func startRegistry(ctx context.Context, backend StorageBackend, bucket string) (
 	storageDriverConfig := configuration.Storage{}
 	storageDriverConfig[backend.Type()] = backend.GetStorageConfig(bucket)
 
+	log := configuration.Log{Level: configuration.Loglevel("fatal"), AccessLog: configuration.AccessLog{Disabled: true}}
+	if verbose {
+		log = configuration.Log{Level: configuration.Loglevel("info"), AccessLog: configuration.AccessLog{Disabled: true}}
+	}
 	reg, err := registry.NewRegistry(ctx, &configuration.Configuration{
 		Storage: storageDriverConfig,
 		HTTP:    configuration.HTTP{Addr: regAddr},
-		Log:     configuration.Log{Level: configuration.Loglevel("fatal"), AccessLog: configuration.AccessLog{Disabled: true}},
+		Log:     log,
 	})
 	if err != nil {
 		return "", err

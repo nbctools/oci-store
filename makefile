@@ -11,7 +11,3 @@ build:
 quick-check:
 	./demo/quick-test.sh	
 
-.PHONY : demo
-demo:
-	./demo/multi-backend-demo.sh
-

@@ -22,12 +22,11 @@ go run ../.  gcs push oci-store-bucket/demo/redis:v1 -i redis:latest
 ## Pushign an image to Azure blob storage
 
 ``` shell
-# source .env
 # export AZURE_STORAGE_ACCOUNT=... \
 #     AZURE_STORAGE_KEY=... \
 #     AZURE_SECRET=... \
 #     AZURE_CLIENT_ID=... \
 #     AZURE_TENANT_ID=...
-
+source .env
 go run ../. azure push mycontainer/demo/redis:stable -i redis:latest
 ```
