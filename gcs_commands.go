@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"strings"
 
 	_ "github.com/distribution/distribution/v3/registry/storage/driver/gcs"
 	"github.com/spf13/cobra"
