@@ -1,23 +1,18 @@
 services:
   localstack:
-    container_name: localstack_multi
+    container_name: s3backend
     image: localstack/localstack
     ports:
       - "127.0.0.1:4566:4566" # LocalStack Gateway
       - "127.0.0.1:4510-4559:4510-4559" # external services port range
     environment:
-      # Enable S3, GCS, and Azure Blob Storage services
-      - SERVICES=s3,s3,gcs,azure
-      # GCS and Azure emulation configuration
-      - GCS_PROVIDER=localstack
-      - AZURE_PROVIDER=localstack
+      - SERVICES=s3
       # - DEBUG=1
       # Configure persistence for all services
       - PERSISTENCE=1
       # Disable edge caching to see immediate changes
       - EDGE_PORT=4566
     volumes:
-      # Persist LocalStack data (S3/GCS/Azure buckets/objects) to a named volume on your host
       - localstack-data:/var/lib/localstack
       - "/var/run/docker.sock:/var/run/docker.sock"
     healthcheck:

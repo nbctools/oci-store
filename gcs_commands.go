@@ -1,6 +1,9 @@
 package main
 
 import (
+	"errors"
+	"strings"
+
 	_ "github.com/distribution/distribution/v3/registry/storage/driver/gcs"
 	"github.com/spf13/cobra"
 )
@@ -36,6 +39,11 @@ var gcsPullCmd = &cobra.Command{
 }
 
 func validateGCSConfig() error {
+	if gcsKeyfile == "" {
+		if gcsKeyfile = getEnv("GOOGLE_CLOUD_PROJECT"); gcsKeyfile == "" {
+			return errors.New("GCS requires project ID to be specified via --project-id or GOOGLE_CLOUD_PROJECT env var")
+		}
+	}
 	return nil
 }
 

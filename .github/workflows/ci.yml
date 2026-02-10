@@ -1,0 +1,153 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  GO_VERSION: '1.21'
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.20', '1.21', '1.22']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-${{ matrix.go-version }}-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run tests
+      run: go test -v -race -coverprofile=coverage.out ./...
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: latest
+        args: --timeout=5m
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Build binary
+      run: |
+        go build -v -o oci-store .
+        ./oci-store --help
+
+    - name: Test CLI structure
+      run: |
+        ./oci-store --help
+        ./oci-store s3 --help
+        ./oci-store gcs --help
+        ./oci-store azure --help
+
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    needs: [build]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Build binary
+      run: go build -o oci-store .
+
+    - name: Start LocalStack
+      run: |
+        docker run -d -p 4566:4566 \
+          -e SERVICES=s3,gcs,azure \
+          -e DEBUG=1 \
+          localstack/localstack:latest
+
+    - name: Wait for LocalStack
+      run: |
+        timeout 60 bash -c 'until curl -f http://localhost:4566/health; do sleep 2; done'
+
+    - name: Test S3 validation
+      run: |
+        ./oci-store s3 push test-bucket/app:v1.0 2>&1 | grep -q "requires region"
+
+    - name: Test GCS validation  
+      run: |
+        ./oci-store gcs push test-bucket/app:v1.0 2>&1 | grep -q "requires project ID"
+
+    - name: Test Azure validation
+      run: |
+        ./oci-store azure push test-container/app:v1.0 2>&1 | grep -q "requires account name"
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Run Gosec Security Scanner
+      uses: securecodewarrior/github-action-gosec@master
+      with:
+        args: './...'

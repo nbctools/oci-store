@@ -16,6 +16,7 @@ Push image:
 ``` shell
 # run `gcloud auth application-default login` to get default app credentials
 go run ../.  gcs push oci-store-bucket/demo/redis:v1 -i redis:latest
+go run ../.  gcs -v pull oci-store-bucket/demo/redis:v1
 
 ```
 
@@ -29,4 +30,5 @@ go run ../.  gcs push oci-store-bucket/demo/redis:v1 -i redis:latest
 #     AZURE_TENANT_ID=...
 source .env
 go run ../. azure push mycontainer/demo/redis:stable -i redis:latest
+go run ../. azure pull mycontainer/demo/redis:stable
 ```
