@@ -26,7 +26,7 @@ go build -o oci-store .
 
 ## Usage
 
-### S3 Storage
+### AWS S3 Storage
 
 ```bash
 # Push to S3
