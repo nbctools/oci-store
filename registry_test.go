@@ -18,11 +18,11 @@ func TestFindFreePort(t *testing.T) {
 	}
 
 	// Test that the port is actually free
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	testListener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		t.Errorf("Port %d returned by findFreePort is not actually free: %v", port, err)
 	} else {
-		listener.Close()
+		testListener.Close()
 	}
 }
 

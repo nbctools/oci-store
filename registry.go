@@ -59,7 +59,7 @@ func startRegistry(ctx context.Context, backend StorageBackend, bucket string) (
 // findFreePort listens on a random available TCP port (by specifying :0)
 func findFreePort() (int, error) {
 	// Listen on TCP port 0. The operating system will assign a free, ephemeral port.
-	listener, err := net.Listen("tcp", ":0")
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return 0, fmt.Errorf("failed to listen on a free port: %w", err)
 	}
