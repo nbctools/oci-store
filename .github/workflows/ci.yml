@@ -119,7 +119,7 @@ jobs:
       - name: Create S3 bucket
         run: |
           localstack wait -t 60
-          aws s3api create-bucket --bucket test-bucket
+          awslocal s3api create-bucket --bucket test-bucket
 
       - name: Test Push image to S3
         run: |
