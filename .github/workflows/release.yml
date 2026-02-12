@@ -3,10 +3,10 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 env:
-  GO_VERSION: '1.21'
+  GO_VERSION: "1.25"
 
 jobs:
   create-release:
@@ -14,24 +14,24 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
 
-    - name: Output Release URL
-      run: echo "Release created at ${{ steps.create_release.outputs.upload_url }}"
+      - name: Output Release URL
+        run: echo "Release created at ${{ steps.create_release.outputs.upload_url }}"
 
   build-and-upload:
     name: Build and Upload
@@ -57,140 +57,140 @@ jobs:
             asset_name: oci-store-windows-amd64.exe
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: ${{ env.GO_VERSION }}
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
-    - name: Build binary
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-        CGO_ENABLED: 0
-      run: |
-        go build -v -o ${{ matrix.asset_name }} .
-        
-    - name: Create archive (Unix)
-      if: matrix.goos != 'windows'
-      run: |
-        tar czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.asset_name }}
-        sha256sum ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.tar.gz.sha256
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          go build -v -o ${{ matrix.asset_name }} .
 
-    - name: Create archive (Windows)
-      if: matrix.goos == 'windows'
-      run: |
-        zip ${{ matrix.asset_name }}.zip ${{ matrix.asset_name }}
-        certutil -hashfile ${{ matrix.asset_name }}.zip sha256 > ${{ matrix.asset_name }}.zip.sha256
+      - name: Create archive (Unix)
+        if: matrix.goos != 'windows'
+        run: |
+          tar czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.asset_name }}
+          sha256sum ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.tar.gz.sha256
 
-    - name: Upload Release Asset (Unix)
-      if: matrix.goos != 'windows'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./${{ matrix.asset_name }}.tar.gz
-        asset_name: ${{ matrix.asset_name }}.tar.gz
-        asset_content_type: application/gzip
+      - name: Create archive (Windows)
+        if: matrix.goos == 'windows'
+        run: |
+          zip ${{ matrix.asset_name }}.zip ${{ matrix.asset_name }}
+          certutil -hashfile ${{ matrix.asset_name }}.zip sha256 > ${{ matrix.asset_name }}.zip.sha256
 
-    - name: Upload Release Asset (Windows)
-      if: matrix.goos == 'windows'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./${{ matrix.asset_name }}.zip
-        asset_name: ${{ matrix.asset_name }}.zip
-        asset_content_type: application/zip
+      - name: Upload Release Asset (Unix)
+        if: matrix.goos != 'windows'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ matrix.asset_name }}.tar.gz
+          asset_name: ${{ matrix.asset_name }}.tar.gz
+          asset_content_type: application/gzip
 
-    - name: Upload Checksum (Unix)
-      if: matrix.goos != 'windows'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./${{ matrix.asset_name }}.tar.gz.sha256
-        asset_name: ${{ matrix.asset_name }}.tar.gz.sha256
-        asset_content_type: text/plain
+      - name: Upload Release Asset (Windows)
+        if: matrix.goos == 'windows'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ matrix.asset_name }}.zip
+          asset_name: ${{ matrix.asset_name }}.zip
+          asset_content_type: application/zip
 
-    - name: Upload Checksum (Windows)
-      if: matrix.goos == 'windows'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./${{ matrix.asset_name }}.zip.sha256
-        asset_name: ${{ matrix.asset_name }}.zip.sha256
-        asset_content_type: text/plain
+      - name: Upload Checksum (Unix)
+        if: matrix.goos != 'windows'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ matrix.asset_name }}.tar.gz.sha256
+          asset_name: ${{ matrix.asset_name }}.tar.gz.sha256
+          asset_content_type: text/plain
+
+      - name: Upload Checksum (Windows)
+        if: matrix.goos == 'windows'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ matrix.asset_name }}.zip.sha256
+          asset_name: ${{ matrix.asset_name }}.zip.sha256
+          asset_content_type: text/plain
 
   update-homebrew:
     name: Update Homebrew Formula
     runs-on: ubuntu-latest
     needs: [create-release, build-and-upload]
     if: startsWith(github.ref, 'refs/tags/v')
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: ${{ env.GO_VERSION }}
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
-    - name: Generate Homebrew formula
-      run: |
-        # Get version from tag
-        VERSION=${GITHUB_REF#refs/tags/v}
-        
-        # Get SHA256 for macOS binary
-        SHA256=$(curl -sL https://api.github.com/repos/${{ github.repository }}/releases/tags/v${VERSION} \
-          | grep "oci-store-darwin-amd64.tar.gz.sha256" \
-          | cut -d'"' -f8 \
-          | curl -sL - \
-          | cut -d' ' -f1)
-        
-        # Generate formula
-        cat > oci-store.rb << EOF
-        class OciStore < Formula
-          desc "Multi-backend Docker image storage CLI tool"
-          homepage "https://github.com/${{ github.repository }}"
-          url "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/oci-store-darwin-amd64.tar.gz"
-          sha256 "${SHA256}"
-          license "MIT"
-  
-          def install
-            bin.install "oci-store"
+      - name: Generate Homebrew formula
+        run: |
+          # Get version from tag
+          VERSION=${GITHUB_REF#refs/tags/v}
+
+          # Get SHA256 for macOS binary
+          SHA256=$(curl -sL https://api.github.com/repos/${{ github.repository }}/releases/tags/v${VERSION} \
+            | grep "oci-store-darwin-amd64.tar.gz.sha256" \
+            | cut -d'"' -f8 \
+            | curl -sL - \
+            | cut -d' ' -f1)
+
+          # Generate formula
+          cat > oci-store.rb << EOF
+          class OciStore < Formula
+            desc "Multi-backend Docker image storage CLI tool"
+            homepage "https://github.com/${{ github.repository }}"
+            url "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/oci-store-darwin-amd64.tar.gz"
+            sha256 "${SHA256}"
+            license "MIT"
+
+            def install
+              bin.install "oci-store"
+            end
+
+            test do
+              system "#{bin}/oci-store", "--help"
+            end
           end
-  
-          test do
-            system "#{bin}/oci-store", "--help"
-          end
-        end
-        EOF
-        
-        echo "Generated formula:"
-        cat oci-store.rb
+          EOF
 
-    - name: Create Homebrew PR
-      uses: peter-evans/create-pull-request@v5
-      with:
-        token: ${{ secrets.HOMEBREW_TOKEN }}
-        repository: homebrew/homebrew-core
-        branch: oci-store-${{ github.ref_name }}
-        title: "oci-store ${GITHUB_REF#refs/tags/v/}"
-        body: |
-          Created by https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          
-          ### Formula
-          \`\`\`ruby
-          $(cat oci-store.rb)
-          \`\`\`
-        commit-message: "oci-store ${GITHUB.ref#refs/tags/v/}"
-        delete-branch: true
+          echo "Generated formula:"
+          cat oci-store.rb
+
+      - name: Create Homebrew PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.HOMEBREW_TOKEN }}
+          repository: homebrew/homebrew-core
+          branch: oci-store-${{ github.ref_name }}
+          title: "oci-store ${GITHUB_REF#refs/tags/v/}"
+          body: |
+            Created by https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            ### Formula
+            \`\`\`ruby
+            $(cat oci-store.rb)
+            \`\`\`
+          commit-message: "oci-store ${GITHUB.ref#refs/tags/v/}"
+          delete-branch: true
