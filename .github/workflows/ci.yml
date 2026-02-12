@@ -124,6 +124,7 @@ jobs:
       - name: Test Push image to S3
         run: |
           docker pull alpine:latest
+          env AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
           ./oci-store s3 push -v -r us-east-1 test-bucket/app:v1.0 -i alpine:latest -e s3.localhost.localstack.cloud:4566
 
       - name: Test Pull image from S3
