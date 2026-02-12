@@ -70,7 +70,7 @@ For authentication and permission see https://distribution.github.io/distributio
 
 ## Prerequisites
 
-- Go 1.21 or later
+- Go 1.25 or later
 - Docker installed and running
 - Cloud Storage account with valid permissions see https://distribution.github.io/distribution/storage-drivers/
 
