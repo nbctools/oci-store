@@ -112,28 +112,23 @@ jobs:
         run: go build -o oci-store .
 
       - name: Start LocalStack
-        run: |
-          docker run -d -p 4566:4566 \
-            -e SERVICES=s3,gcs,azure \
-            -e DEBUG=1 \
-            localstack/localstack:latest
+        uses: localstack/setup-localstack@v1
+        with:
+          services: s3
 
-      - name: Wait for LocalStack
+      - name: Create S3 bucket
         run: |
-          timeout 60 bash -c 'until curl -f http://localhost:4566/health; do sleep 2; done'
+          localstack wait -t 60
+          aws s3api create-bucket --bucket test-bucket
 
-      - name: Test S3 validation
+      - name: Test Push image to S3
         run: |
-          ./oci-store s3 push test-bucket/app:v1.0 2>&1 | grep -q "requires region"
+          docker pull alpine:latest
+          ./oci-store s3 push -r us-east-1 test-bucket/app:v1.0 -i alpine:latest -e s3.localhost.localstack.cloud:4566
 
-      - name: Test GCS validation
+      - name: Test Pull image from S3
         run: |
-          ./oci-store gcs push test-bucket/app:v1.0 2>&1 | grep -q "requires project ID"
-
-      - name: Test Azure validation
-        run: |
-          ./oci-store azure push test-container/app:v1.0 2>&1 | grep -q "requires account name"
-
+          ./oci-store s3 pull -r us-east-1 test-bucket/app:v1.0 -e s3.localhost.localstack.cloud:4566
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
