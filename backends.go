@@ -21,7 +21,7 @@ type S3Backend struct {
 	RootDir   string
 	Region    string
 	Endpoint  string
-	AccessKey string
+	AccessKey string /* #nosec G117 */
 	SecretKey string
 }
 
@@ -131,7 +131,7 @@ type AzureBackend struct {
 	Container      string // For Azure
 	CredentialType string //For Azure
 	RootDir        string
-	Secret         string
+	Secret         string /* #nosec G117 */
 	TenantID       string
 	ClientID       string
 }
