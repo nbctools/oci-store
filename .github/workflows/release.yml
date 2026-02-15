@@ -58,8 +58,7 @@ jobs:
         if: matrix.goos == 'windows'
         run: |
           zip ${{ matrix.asset_name }}.zip ${{ matrix.asset_name }}
-          # Using PowerShell for robust SHA256 generation on Windows
-          powershell -Command "(Get-FileHash -Algorithm SHA256 ${{ matrix.asset_name }}.zip).Hash | Out-File -FilePath ${{ matrix.asset_name }}.zip.sha256"
+          sha256sum ${{ matrix.asset_name }}.zip > ${{ matrix.asset_name }}.zip.sha256
 
       - name: Upload artifact (Unix)
         if: matrix.goos != 'windows'
