@@ -9,16 +9,9 @@ env:
   GO_VERSION: "1.25"
 
 jobs:
-  # The 'create-release' job is removed. Its functionality (creating the release)
-  # is now handled by 'softprops/action-gh-release' in the 'create-github-release' job.
-  # The 'upload_url' output is no longer directly used as softprops handles asset uploads internally.
-
-  build-assets: # Renamed from 'build-and-upload'
+  build-assets:
     name: Build Assets
     runs-on: ubuntu-latest
-    # Removed `needs: create-release` as create-release is gone and this job
-    # now focuses solely on building and archiving assets.
-    # It doesn't need to explicitly wait for a release creation step.
     strategy:
       matrix:
         include:
@@ -65,44 +58,44 @@ jobs:
         if: matrix.goos == 'windows'
         run: |
           zip ${{ matrix.asset_name }}.zip ${{ matrix.asset_name }}
-          # Using certutil for sha256 on Windows
-          certutil -hashfile ${{ matrix.asset_name }}.zip sha256 | findstr /V "sha256" | findstr /V "${{ matrix.asset_name }}.zip" > ${{ matrix.asset_name }}.zip.sha256
+          # Using PowerShell for robust SHA256 generation on Windows
+          powershell -Command "(Get-FileHash -Algorithm SHA256 ${{ matrix.asset_name }}.zip).Hash | Out-File -FilePath ${{ matrix.asset_name }}.zip.sha256"
 
       - name: Upload artifact (Unix)
         if: matrix.goos != 'windows'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.asset_name }} # Each asset gets its own artifact
+          name: ${{ matrix.asset_name }}
           path: |
             ./${{ matrix.asset_name }}.tar.gz
             ./${{ matrix.asset_name }}.tar.gz.sha256
-          retention-days: 1 # Optional: save space
+          retention-days: 1
 
       - name: Upload artifact (Windows)
         if: matrix.goos == 'windows'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.asset_name }} # Each asset gets its own artifact
+          name: ${{ matrix.asset_name }}
           path: |
             ./${{ matrix.asset_name }}.zip
             ./${{ matrix.asset_name }}.zip.sha256
-          retention-days: 1 # Optional: save space
+          retention-days: 1
 
-  create-github-release: # New job to create the release and upload all assets
+  create-github-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [build-assets] # Depends on all assets being built and uploaded as artifacts
-    if: needs.build-assets.result == 'success' # Only proceed if all assets were built successfully
+    needs: [build-assets]
+    if: needs.build-assets.result == 'success'
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # Removed: - name: Checkout code uses: actions/checkout@v4 (not strictly needed for this job's function)
 
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
-          path: ./release_assets # All artifacts will be downloaded into this directory
+          path: ./release_assets
 
+      # Optional: Remove this step once the workflow is confirmed to be working correctly
       - name: List downloaded files (for debugging)
         run: ls -R ./release_assets
 
@@ -119,16 +112,11 @@ jobs:
           name: Release ${{ github.ref }}
           draft: false
           prerelease: false
-          # You can add a custom release body here, e.g.:
-          # body: |
-          #   This is release ${{ github.ref_name }}.
-          #   See changes: https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
   update-homebrew:
     name: Update Homebrew Formula
     runs-on: ubuntu-latest
-    # Changed needs to depend on the new release creation job
     needs: [create-github-release]
     if: startsWith(github.ref, 'refs/tags/v')
 
@@ -143,18 +131,14 @@ jobs:
 
       - name: Generate Homebrew formula
         run: |
-          # Get version from tag (e.g., '1.0.0' from 'v1.0.0')
           VERSION=${GITHUB_REF#refs/tags/v}
 
-          # Get SHA256 for macOS binary by querying the GitHub API for the created release.
-          # This approach is robust as it fetches directly from the source of truth.
           SHA256=$(curl -sL https://api.github.com/repos/${{ github.repository }}/releases/tags/${GITHUB_REF_NAME} \
             | grep "oci-store-darwin-amd64.tar.gz.sha256" \
             | cut -d'"' -f8 \
             | curl -sL - \
             | cut -d' ' -f1)
 
-          # Generate formula
           cat > oci-store.rb << EOF
           class OciStore < Formula
             desc "Multi-backend Docker image storage CLI tool"
@@ -182,7 +166,8 @@ jobs:
           token: ${{ secrets.HOMEBREW_TOKEN }}
           repository: homebrew/homebrew-core
           branch: oci-store-${{ github.ref_name }}
-          title: "oci-store ${GITHUB_REF#refs/tags/v/}"
+          # Optimized title and commit-message
+          title: "oci-store ${{ github.ref_name }}"
           body: |
             Created by https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
@@ -190,5 +175,7 @@ jobs:
             ```ruby
             $(cat oci-store.rb)
             ```
-          commit-message: "oci-store ${GITHUB_REF#refs/tags/v/}"
+          # Optimized commit-message
+          commit-message: "oci-store ${{ github.ref_name }}"
           delete-branch: true
+`
