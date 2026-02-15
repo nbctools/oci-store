@@ -178,4 +178,3 @@ jobs:
           # Optimized commit-message
           commit-message: "oci-store ${{ github.ref_name }}"
           delete-branch: true
-`
