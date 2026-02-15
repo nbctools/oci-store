@@ -28,8 +28,7 @@ jobs:
               - 'go.mod'
               - 'go.sum'
             workflow_config:
-              - '.github/workflows/**'
-              - 'ci.yml' # Or '**/ci.yml' if it's not in .github/workflows
+              - '.github/workflows/ci.yml'
   test:
     name: Test
     runs-on: ubuntu-latest
