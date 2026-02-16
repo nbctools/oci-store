@@ -104,6 +104,8 @@ jobs:
       - name: Create Release and Upload Assets
         id: create_release
         uses: softprops/action-gh-release@v2
+        # env:
+        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: |
             ./release_assets/**/*.tar.gz
@@ -114,7 +116,6 @@ jobs:
           name: Release ${{ github.ref }}
           draft: false
           prerelease: false
-          token: ${{ secrets.GITHUB_TOKEN }}
 
   update-homebrew:
     name: Update Homebrew Formula
