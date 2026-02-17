@@ -218,19 +218,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
         run: |
-          # Clean and validate token
-          TOKEN=$(echo "$GH_TOKEN" | tr -d '\n\r' | xargs)
-          
-          if [ -z "$TOKEN" ]; then
-            echo "ERROR: HOMEBREW_TOKEN is empty or invalid"
-            exit 1
-          fi
-          
-          # Configure git to use the token
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/"
-          
-          # Clone the tap repository
-          git clone https://github.com/nbctools/homebrew-tap.git homebrew-tap
+          # Clone using gh CLI (handles auth automatically)
+          gh repo clone nbctools/homebrew-tap homebrew-tap
           cd homebrew-tap
           
           # Configure git
