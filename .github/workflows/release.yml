@@ -214,43 +214,48 @@ jobs:
           echo "Generated formula:"
           cat oci-store.rb
 
-      - name: Checkout Homebrew Tap
-        uses: actions/checkout@v4
-        with:
-          repository: nbctools/homebrew-tap
-          token: ${{ secrets.HOMEBREW_TOKEN }}
-          path: homebrew-tap
-
-      - name: Update formula in tap
+      - name: Clone Homebrew Tap and create PR
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
         run: |
-          cp oci-store.rb homebrew-tap/Formula/oci-store.rb
+          # Clone the tap repository
+          git clone https://x-access-token:${GH_TOKEN}@github.com/nbctools/homebrew-tap.git homebrew-tap
           cd homebrew-tap
+          
+          # Configure git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/oci-store.rb
           
-          # Check if there are changes to commit
-          if git diff --staged --quiet; then
-            echo "No changes to formula, skipping commit"
+          # Create a new branch
+          BRANCH="oci-store-${{ github.ref_name }}"
+          git checkout -b "$BRANCH"
+          
+          # Copy the formula
+          cp ../oci-store.rb Formula/oci-store.rb
+          
+          # Check if there are changes
+          if git diff --quiet Formula/oci-store.rb; then
+            echo "No changes to formula, skipping"
             exit 0
           fi
+          
+          # Commit and push
+          git add Formula/oci-store.rb
+          git commit -m "oci-store: update to ${{ github.ref_name }}"
+          git push origin "$BRANCH"
+          
+          # Create PR using gh CLI
+          cd ..
+          gh pr create \
+            --repo nbctools/homebrew-tap \
+            --head "$BRANCH" \
+            --title "oci-store: update to ${{ github.ref_name }}" \
+            --body "Automated update from https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.HOMEBREW_TOKEN }}
-          path: homebrew-tap
-          branch: oci-store-${{ github.ref_name }}
-          title: "oci-store: update to ${{ github.ref_name }}"
-          body: |
-            Automated update from https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ### Changes
+          - Update oci-store to version ${{ github.ref_name }}
 
-            ### Changes
-            - Update oci-store to version ${{ github.ref_name }}
-
-            ### Formula
-            ```ruby
-            $(cat oci-store.rb)
-            ```
-          commit-message: "oci-store: update to ${{ github.ref_name }}"
-          delete-branch: true
+          ### Formula
+          \`\`\`ruby
+          $(cat oci-store.rb)
+          \`\`\`"
