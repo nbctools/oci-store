@@ -1,28 +1,85 @@
-# OCI-Store: Multi-Backend Docker Image Storage Manager
+# oci-store
 
-A CLI tool to store Docker/OCI images directly in cloud storage using Docker Distribution's production-grade storage drivers. Supports S3, Google Cloud Storage, and Azure Blob Storage.
+Store and retrieve OCI artifacts directly from object storage (S3, GCS, Azure)
+— without running a container registry.
 
-## Features
+Perfect for CI/CD pipelines, air-gapped environments, backups, and low-ops setups.
 
-- 🗄️ **Multiple Storage Backends**: S3, GCS, Azure with identical CLI experience
-- 🔄 **Content-Addressable Storage**: Automatic deduplication and optimization
-- 📦 **OCI Compliant**: Full compatibility with Docker and OCI image specifications
-- ☁️ **Serverless**: No dedicated registry.
+## Why oci-store?
+
+Running a full OCI registry (Harbor, Docker Registry, etc.) can be:
+- Operationally heavy
+- Overkill for CI artifacts or internal use
+- Hard to justify for ephemeral or air-gapped environments
+
+`oci-store` lets you:
+- Store OCI artifacts directly in object storage
+- Avoid running and maintaining a registry service
+- Reuse cheap, durable cloud storage
+- Integrate cleanly with existing OCI tooling
 
 
-## Quick Start
+## Quick start
 
-### Install
+Install 
 
 ```bash
 go install github.com/nbctools/oci-store
 ```
 
-### Build
+Push an OCI artifact to S3:
 
 ```bash
-go build -o oci-store .
+oci-store s3 push \
+    --region us-east-1 \
+    --image myimage:latest \
+    my-bucket/myapp:v1.0
 ```
+
+Pull it back:
+
+``` bash
+oci-store s3 pull \
+    --region us-east-1 \
+    my-bucket/myapp:v1.0
+```
+
+
+## How It Works
+
+`oci-store` acts as a bridge between local OCI images and object storage:
+
+```
+┌─────────────────┐
+│  Local Docker   │
+│     Daemon      │
+└────────┬────────┘
+         │
+         │ oci-store reads/writes
+         │ via Docker API
+         ▼
+┌─────────────────┐      ┌──────────────────┐
+│   oci-store     │◄────►│ Object Storage   │
+│   (This CLI)    │      │ (S3/GCS/Azure)   │
+└─────────────────┘      └──────────────────┘
+                               │
+                               ▼
+                         Registry v2 Layout
+                         (blobs + metadata)
+```
+
+**Push workflow:**
+1. Reads OCI image from local Docker daemon
+2. Extracts layers, manifests, and configs
+3. Uploads them to object storage using registry v2 layout
+4. Content-addressable storage ensures deduplication
+
+**Pull workflow:**
+1. Downloads manifests and layers from object storage
+2. Reconstructs OCI image format
+3. Loads image into local Docker daemon
+
+No persistent registry service — `oci-store` uses an ephemeral registry process only during push/pull operations, then tears it down.
 
 ## Usage
 
@@ -70,49 +127,8 @@ For authentication and permission see https://distribution.github.io/distributio
 
 ## Prerequisites
 
-- Go 1.25 or later
-- Docker installed and running
+- Docker daemon installed and running
 - Cloud Storage account with valid permissions see https://distribution.github.io/distribution/storage-drivers/
-
-
-## Local Development
-
-### Using Emulators
-
-The project includes Docker Compose configurations for local development:
-
-```bash
-cd demo
-docker-compose up -d
-```
-This starts:
-- **LocalStack** (port 4566): Emulates S3, GCS, and Azure
-- **Azurite** (port 10000): Dedicated Azure Blob Storage emulator
-
-### Local S3 Testing
-
-```bash
-# Create bucket
-aws --endpoint-url http://localhost:4566 s3 mb s3://test-bucket
-
-# Push image
-AWS_REGION=us-east-1 ./oci-store s3 push --endpoint http://localhost:4566 test-bucket/myapp:v1.0
-```
-
-### Local Azure Testing
-
-```bash
-# Create container (via Azurite)
-curl -X PUT http://localhost:10000/devstoreaccount1/test-container?restype=container \
-  -H "x-ms-version:2019-12-12" \
-  -H "x-ms-date:$(date -u '+%a, %d %b %Y %H:%M:%S GMT')" \
-  -H "Authorization:SharedKey devstoreaccount1:Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==" \
-  -H "Content-Length:0"
-
-# Push image
-AZURE_STORAGE_ACCOUNT=devstoreaccount1 AZURE_STORAGE_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw== \
-./oci-store azure push --account-name devstoreaccount1 --account-key Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw== test-container/myapp:v1.0
-```
 
 ## CLI Reference
 
@@ -163,14 +179,6 @@ This layout provides:
 - **Atomic operations**: Tags are symbolic links for atomic updates
 
 
-## Development
-
-### Building
-
-```bash
-go build -o oci-store .
-```
-
 ## License
 
-This project uses the same license as Docker Distribution.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
